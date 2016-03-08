@@ -16,12 +16,7 @@ function getData()
 	//$body = $app->request->getBody (); // get the body of the HTTP request (from client)
 	//$geom = geoPHP::load("LINESTRING($body)");
 	$geom = geoPHP::load('LINESTRING(1 1,5 1,5 5,1 5,1 1)');
-	//$insert_string = $geom->ST();
-	//$insert_string = pg_escape_bytea($geom->out('ewkb'));
-	//$insert = GeomFromWKB('$insert_string');
-	//$sql = "INSERT INTO PATHS (geom) values (ST_GeomFromWKB('$insert_string'))";
-	//$sql = "INSERT INTO PATHS (geom) values ($geom)";
-	//$sql = "INSERT INTO PATHS (geom) VALUES ($insert_string)";
+
 	$insert_string = pg_escape_bytea($geom->out('ewkb'));
 	$sql = "INSERT INTO PATHS (geom) values (ST_GeomFromWKB('$insert_string'))";
 	//$sql = "INSERT INTO PATHS(geom) VALUES ($geom)";
@@ -45,15 +40,22 @@ function getData()
 function postLinestring()
 {
 	$body = $app->request->getBody (); // get the body of the HTTP request (from client)
-	$geom = geoPHP::load('LINESTRING($body)');
+	
+	$parts = explode('!',$body);
+	$pathName = $parts[0];
+	$pathGeom = $parts[1];
+	$routeTime = $paths[2];
+	$geom = geoPHP::load("LINESTRING('$pathGeom')");
 	$insert_string = pg_escape_bytea($geom->out('ewkb'));
-	$sql = "INSERT INTO PATHS (geom) values (ST_GeomFromWKB('$insert_string'))";
+	$sql = "INSERT INTO routes (routename, routetime, geom) values ('$pathName', $routeTime, ST_GeomFromWKB('$insert_string'))";
 	try {
 		$db = getDB();
 		$stmt =   pg_query($db, $sql);
 		$db = null;
 		echo 'Working';
 	} 
+	
+
 	
 	catch(PDOException $e) {
 		//error_log($e->getMessage(), 3, '/var/tmp/phperror.log'); //Write error log
@@ -65,11 +67,15 @@ function postLinestring()
 $app->map ( "/linestring/(:id)", function ($elementID = null) use ($app)
 {
 	$body = $app->request->getBody(); // get the body of the HTTP request (from client)
-
-	$geom = geoPHP::load("LINESTRING('$body')");
-
+	$parts = explode('!',$body); //Parse linestring after '!' to create the three values 
+	$pathName = $parts[0];
+	$pathGeom = $parts[1];
+	$routeTime = $parts[2];
+	$visibility = $parts[3];
+	$userID = $parts[4];
+	$geom = geoPHP::load("LINESTRING('$pathGeom')");
 	$insert_string = pg_escape_bytea($geom->out('ewkb'));
-	$sql = "INSERT INTO PATHS (geom) values (ST_GeomFromWKB('$insert_string'))";
+	$sql = "INSERT INTO routes (route_name, route_time, facebook_id, visibility, geom) values ('$pathName', $routeTime, $userID, '$visibility', ST_GeomFromWKB('$insert_string'))";
 	try {
 		$db = getDB();
 		$stmt = pg_query($db, $sql);
