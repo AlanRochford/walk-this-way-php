@@ -3,6 +3,13 @@ require 'db.php';
 require_once "../Slim/Slim.php";
 include_once('../geoPHP/geoPHP.inc');
 require_once("../geoPHP/lib/geometry/Geometry.class.php");
+// require_once "/DB/DAO/UsersDAO.php";
+// require_once "/DB/DBManager.php";
+
+// $db = new DBManager();
+// $uDAO = new UsersDAO($db);
+
+// $db->openConnection();
 
 Slim\Slim::registerAutoloader ();
 
@@ -12,6 +19,7 @@ $app->get('/data','getData');
 
 function getData()
 {
+	
 	//$sql = "SELECT * FROM paths";
 	//$body = $app->request->getBody (); // get the body of the HTTP request (from client)
 	//$geom = geoPHP::load("LINESTRING($body)");
@@ -30,32 +38,6 @@ function getData()
 		$db = null;
 		echo '{"res": ' . json_encode($res) . '}';
 	} 
-	
-	catch(PDOException $e) {
-		//error_log($e->getMessage(), 3, '/var/tmp/phperror.log'); //Write error log
-		echo '{"error":{"text":'. $e->getMessage() .'}}';
-	}
-}
-
-function postLinestring()
-{
-	$body = $app->request->getBody (); // get the body of the HTTP request (from client)
-	
-	$parts = explode('!',$body);
-	$pathName = $parts[0];
-	$pathGeom = $parts[1];
-	$routeTime = $paths[2];
-	$geom = geoPHP::load("LINESTRING('$pathGeom')");
-	$insert_string = pg_escape_bytea($geom->out('ewkb'));
-	$sql = "INSERT INTO routes (routename, routetime, geom) values ('$pathName', $routeTime, ST_GeomFromWKB('$insert_string'))";
-	try {
-		$db = getDB();
-		$stmt =   pg_query($db, $sql);
-		$db = null;
-		echo 'Working';
-	} 
-	
-
 	
 	catch(PDOException $e) {
 		//error_log($e->getMessage(), 3, '/var/tmp/phperror.log'); //Write error log
@@ -88,6 +70,63 @@ $app->map ( "/linestring/(:id)", function ($elementID = null) use ($app)
 	}
 } )->via( "POST");
 
+$app->map ( "/myroutes/", function ($elementID = null) use ($app)
+{
+	$paramValue = $app->request()->get('id');
+	echo json_encode($paramValue);
+	$sql = "SELECT route_name, route_time, visibility FROM routes WHERE facebook_id = '$paramValue' AND visibility = 'private'";
+
+	try {
+		$db = getDB();
+		$stmt = pg_query($db, $sql);
+		$arrayOfResults = fetchResults ( $stmt );
+		
+	
+// 	$html = "<ul>";
+	
+// 	for ($i = 0; $i< count($arrayOfResults); $i++)
+// 	{
+// 		$html .= "<li>";
+// 		$html .= $arrayOfResults[$i]["route_name"];
+// 		$html .="</li>";
+// 	}
+// 	$html .= "</ul>";
+// 	echo $html;
+		$db = null;
+		echoRespnse(200, $arrayOfResults);
+
+	} 
+	
+	catch(PDOException $e) {
+		//error_log($e->getMessage(), 3, '/var/tmp/phperror.log'); //Write error log
+		echo '{"error":{"text":'. $e->getMessage() .'}}';
+	}
+
+} )->via( "GET");
+
+function fetchResults($resultSet) {
+	$rows = array (); // will contain all the records
+	while ( $row = pg_fetch_assoc($resultSet) ) {
+		$rows [] = $row;
+	}
+	return $rows;
+}
+
+/**
+ * Echoing json response to client
+ * @param String $status_code Http response code
+ * @param Int $response Json response
+ */
+function echoRespnse($status_code, $response) {
+    $app = \Slim\Slim::getInstance();
+    // Http response code
+    $app->status($status_code);
+ 
+    // setting response content type to json
+    $app->contentType('application/json');
+ 
+    echo json_encode($response);
+}
 
 $app->run ();
 ?>
