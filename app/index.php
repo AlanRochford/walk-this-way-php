@@ -73,7 +73,6 @@ $app->map ( "/linestring/(:id)", function ($elementID = null) use ($app)
 $app->map ( "/myroutes/", function ($elementID = null) use ($app)
 {
 	$paramValue = $app->request()->get('id');
-	echo json_encode($paramValue);
 	$sql = "SELECT route_name, route_time, visibility FROM routes WHERE facebook_id = '$paramValue' AND visibility = 'private'";
 
 	try {
@@ -81,16 +80,7 @@ $app->map ( "/myroutes/", function ($elementID = null) use ($app)
 		$stmt = pg_query($db, $sql);
 		$arrayOfResults = fetchResults ( $stmt );
 		
-	
-// 	$html = "<ul>";
-	
-// 	for ($i = 0; $i< count($arrayOfResults); $i++)
-// 	{
-// 		$html .= "<li>";
-// 		$html .= $arrayOfResults[$i]["route_name"];
-// 		$html .="</li>";
-// 	}
-// 	$html .= "</ul>";
+	;
 // 	echo $html;
 		$db = null;
 		echoRespnse(200, $arrayOfResults);
